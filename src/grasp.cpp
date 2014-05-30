@@ -28,8 +28,8 @@ int fingers_are_stopped_counter = 0;
 
 void open_fingers();
 void close_fingers();
-void move_up();
-void move_to_grasp_point();
+void move_up(double distance);
+void move_to_grasp_point(double x, double y, double z, double rotx, double roty, double rotz, double rotw);
 bool is_same_pose(geometry_msgs::PoseStamped* pose1, const geometry_msgs::PoseStampedConstPtr pose2);
 bool is_same_pose(jaco_msgs::FingerPosition* pose1, jaco_msgs::FingerPositionConstPtr pose2);
 void wait_for_arm_stopped();
@@ -73,9 +73,9 @@ void fingers_position_callback(const jaco_msgs::FingerPositionConstPtr& input_fi
 void thread_function(){
     if(ros::ok()){
         open_fingers();
-        move_to_grasp_point();
+        move_to_grasp_point(-0.24, 0.366, -0.003, 0.064, -0.658, -0.035, 0.75);
         close_fingers();
-        move_up();
+        move_up(0.4);
         end_program = true;
     }
 }
@@ -138,19 +138,19 @@ void wait_for_fingers_stopped(){
     check_fingers_status = false;
 }
 
-void move_to_grasp_point(){
+void move_to_grasp_point(double x, double y, double z, double rotx, double roty, double rotz, double rotw){
     actionlib::SimpleActionClient<jaco_msgs::ArmPoseAction> action_client("/jaco/arm_pose",true);
     action_client.waitForServer();
     jaco_msgs::ArmPoseGoal pose_goal = jaco_msgs::ArmPoseGoal();
 
     pose_goal.pose.header.frame_id = "/jaco_api_origin";
-    pose_goal.pose.pose.position.x = -0.24;
-    pose_goal.pose.pose.position.y = 0.366;
-    pose_goal.pose.pose.position.z = -0.003;
-    pose_goal.pose.pose.orientation.x = 0.064;
-    pose_goal.pose.pose.orientation.y = -0.658;
-    pose_goal.pose.pose.orientation.z = -0.035;
-    pose_goal.pose.pose.orientation.w = 0.75;
+    pose_goal.pose.pose.position.x = x;
+    pose_goal.pose.pose.position.y = y;
+    pose_goal.pose.pose.position.z = z;
+    pose_goal.pose.pose.orientation.x = rotx;
+    pose_goal.pose.pose.orientation.y = roty;
+    pose_goal.pose.pose.orientation.z = rotz;
+    pose_goal.pose.pose.orientation.w = rotw;
     action_client.sendGoal(pose_goal);
 
     wait_for_arm_stopped();
@@ -183,7 +183,7 @@ void close_fingers(){
 }
 
 
-void move_up(){
+void move_up(double distance){
     actionlib::SimpleActionClient<jaco_msgs::ArmPoseAction> action_client("/jaco/arm_pose",true);
     action_client.waitForServer();
     jaco_msgs::ArmPoseGoal pose_goal = jaco_msgs::ArmPoseGoal();
@@ -191,7 +191,7 @@ void move_up(){
     arm_mutex.lock();
     pose_goal.pose = arm_pose;
     pose_goal.pose.header.frame_id = "/jaco_api_origin";
-    pose_goal.pose.pose.position.z += 0.4;
+    pose_goal.pose.pose.position.z += distance;
     arm_mutex.unlock();
 
     action_client.sendGoal(pose_goal);
