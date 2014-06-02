@@ -27,3 +27,7 @@ catkin_package(
 add_executable(grasp src/grasp.cpp)
 target_link_libraries(grasp ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_dependencies(grasp custom_jaco_gencpp)
+
+add_executable(jaco_joint_states src/jaco_joint_states.cpp)
+target_link_libraries(jaco_joint_states ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+add_dependencies(jaco_joint_states custom_jaco_gencpp)
