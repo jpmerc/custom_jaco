@@ -31,3 +31,7 @@ add_dependencies(grasp custom_jaco_gencpp)
 add_executable(jaco_joint_states src/jaco_joint_states.cpp)
 target_link_libraries(jaco_joint_states ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_dependencies(jaco_joint_states custom_jaco_gencpp)
+
+add_executable(calibration src/calibration.cpp)
+target_link_libraries(calibration ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+add_dependencies(calibration custom_jaco_gencpp)
