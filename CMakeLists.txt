@@ -36,15 +36,3 @@ add_executable(calibration src/calibration.cpp)
 target_link_libraries(calibration ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 add_dependencies(calibration custom_jaco_gencpp)
 
-add_executable(teach_repeat src/teach_repeat.cpp)
-target_link_libraries(teach_repeat ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-add_dependencies(teach_repeat custom_jaco_gencpp)
-
-#add_executable(perception
-#  src/nodes/perception.cpp
-#  src/objectExtractor.cpp
-#  src/jaco.cpp
-#  src/teacher.cpp
-#)
-#target_link_libraries(perception ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-#add_dependencies(perception custom_jaco_gencpp)
