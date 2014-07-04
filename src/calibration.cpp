@@ -9,88 +9,108 @@
 
 
 using namespace std;
-
-
-void calibrate();
 void printPose(string str, tf::Transform &in_pose);
 
 
-void calibrate(){
-
-    // Listens to tf camera_link -> AR_OBJECT launched by ar_kinect
-    tf::TransformListener listener_cam_ar;
+void cameraToARTagTF(){
     tf::StampedTransform artag_kinect_referential;
-    listener_cam_ar.waitForTransform("camera_link","AR_OBJECT",ros::Time(0),ros::Duration(3.0));
-    listener_cam_ar.lookupTransform("camera_link","AR_OBJECT",ros::Time(0),artag_kinect_referential);
-
-    //original_ar_object_pose.rotate(tf::Vector3(0,1,0),angles::from_degrees(-15));
-
-
-    // Transforms AR_OBJECT to the same orientation of camera_link frame to facilitate the calculations afterwards
-    artag_kinect_referential *= tf::Transform(tf::createQuaternionFromRPY(angles::from_degrees(-90),angles::from_degrees(90),angles::from_degrees(0)));
-
-
-    // Save for later
-    tf::Pose initial_pose_ar = artag_kinect_referential;
-
-
-    // Publish tf to visualize the results in rviz
+    tf::TransformListener listener_cam_ar;
     static tf::TransformBroadcaster br;
-    br.sendTransform(tf::StampedTransform(artag_kinect_referential, ros::Time::now(), "camera_link", "AR_OBJECT_REORIENTED"));
-    // printPose("TF", tf_to_same_orientation);
 
+    ros::Rate r(5);
+    while(ros::ok()){
+        bool arTagFound = listener_cam_ar.waitForTransform("camera_link","AR_OBJECT",ros::Time(0),ros::Duration(3.0));
+        if(arTagFound){
+            listener_cam_ar.lookupTransform("camera_link","AR_OBJECT",ros::Time(0),artag_kinect_referential);
 
-    //Add the position difference of the marker to jaco_joint_6
-    tf::TransformListener listener;
+            // Transforms AR_OBJECT to the same orientation of camera_link frame to facilitate the calculations afterwards
+            artag_kinect_referential *= tf::Transform(tf::createQuaternionFromRPY(angles::from_degrees(-90),angles::from_degrees(90),angles::from_degrees(0)));
+
+            // Publish tf to visualize the results in rviz
+
+            br.sendTransform(tf::StampedTransform(artag_kinect_referential, ros::Time::now(), "camera_link", "AR_OBJECT_REORIENTED"));
+        }
+        r.sleep();
+    }
+}
+
+void jacoToARTagTF(){
     tf::StampedTransform artag_jaco_referential;
-    listener.waitForTransform("arm_base","ARtag",ros::Time(0),ros::Duration(3.0));
-    listener.lookupTransform("arm_base","ARtag",ros::Time(0),artag_jaco_referential);
-
-    // ARtag with good orientation
-    tf::Transform artag_same_orientation = tf::Transform(tf::createQuaternionFromRPY(angles::from_degrees(-90),angles::from_degrees(0),angles::from_degrees(-90)));
-    artag_jaco_referential *= artag_same_orientation;
+    tf::TransformListener listener;
+    tf::Transform artag_same_orientation;
     static tf::TransformBroadcaster br5;
-    br5.sendTransform(tf::StampedTransform(artag_jaco_referential, ros::Time::now(), "arm_base", "ARtag_REORIENTED"));
 
+    ros::Rate r(5);
+    while(ros::ok()){
+        bool arTagFound = listener.waitForTransform("arm_base","ARtag",ros::Time(0),ros::Duration(3.0));
+        if(arTagFound){
+            listener.lookupTransform("arm_base","ARtag",ros::Time(0),artag_jaco_referential);
 
-    // ARtag offset (from static_tf in launch file) (adjusted manually)
-    // Could be removed if the ARtag position in the real world was measure precisely with respect to the joints
-    tf::Transform t = tf::Transform(tf::createQuaternionFromRPY(angles::from_degrees(0),angles::from_degrees(-11),angles::from_degrees(2)),tf::Vector3(-0.004,-0.045,-0.015));
-    static tf::TransformBroadcaster br3;
-    br3.sendTransform(tf::StampedTransform(t, ros::Time::now(), "ARtag_REORIENTED", "ARtag_OFFSET"));
-    artag_jaco_referential *= t;
+            // ARtag with good orientation
+            artag_same_orientation = tf::Transform(tf::createQuaternionFromRPY(angles::from_degrees(-90),angles::from_degrees(0),angles::from_degrees(-90)));
+            artag_jaco_referential *= artag_same_orientation;
 
-
-    //Calculate the inverse transform to get the difference between arm_base and camera_link
-    //tf::Transform trans = artag_jaco_referential * artag_kinect_referential.inverse();
-    tf::Vector3 translation = artag_jaco_referential.getOrigin() - artag_kinect_referential.getOrigin();
-    tf::Transform trans = tf::Transform(artag_kinect_referential.getBasis().transposeTimes(artag_jaco_referential.getBasis()), translation);
-
-
-    //Rotate a point to get the good Z value depending on the tilt angle (pitch) of the camera
-    double roll,pitch,yaw;
-    trans.getBasis().getRPY(roll,pitch,yaw);
-    tf::Pose kin = tf::Transform(tf::createQuaternionFromRPY(0,-pitch,0),tf::Vector3(0,0,0));
-    tf::Transform tilt_correction = kin.inverseTimes(initial_pose_ar);
-    artag_kinect_referential.getOrigin().setZ(tilt_correction.getOrigin().getZ());
-
-    // repeat, but neccessary due to tilt correction
-    translation = artag_jaco_referential.getOrigin() - artag_kinect_referential.getOrigin();
-    trans.setOrigin(translation);
-
-    //printPose("Transformation",trans);
-
-    // Publish tf to visualize the results in rviz
-    static tf::TransformBroadcaster br2;
-    br.sendTransform(tf::StampedTransform(trans, ros::Time::now(), "arm_base", "camera_link_calculated"));
-
-    printPose("JACO",artag_jaco_referential);
-    printPose("Kinect",artag_kinect_referential);
-    printPose("Tranform", trans);
-
+            br5.sendTransform(tf::StampedTransform(artag_jaco_referential, ros::Time::now(), "arm_base", "ARtag_REORIENTED"));
+        }
+    }
+    r.sleep();
 }
 
 
+
+void alignARTagOfBothReferentials(){
+    tf::TransformListener listener;
+    tf::StampedTransform ar_kinect;
+    tf::Transform diff;
+    static tf::TransformBroadcaster br;
+    ros::Rate r(10);
+
+    while(ros::ok()){
+        bool arTagFound = listener.waitForTransform("ARtag_REORIENTED","AR_OBJECT_REORIENTED",ros::Time(0),ros::Duration(3.0));
+        if(arTagFound){
+            listener.lookupTransform("ARtag_REORIENTED","AR_OBJECT_REORIENTED",ros::Time(0),ar_kinect);
+            tf::Vector3 translation = ar_kinect.getOrigin();
+            diff = tf::Transform(ar_kinect.getRotation(), translation);
+            br.sendTransform(tf::StampedTransform(diff,ros::Time::now(),"ARtag_REORIENTED","ARtag_OFFSET"));
+        }
+        r.sleep();
+    }
+}
+
+void printJacoKinectTF(){
+    tf::TransformListener listener;
+    tf::StampedTransform ar_kinect;
+    tf::StampedTransform ar_jaco;
+    tf::Transform add;
+    static tf::TransformBroadcaster br;
+
+    ros::Rate r(10);
+
+    while(ros::ok()){
+        bool arTagFound = listener.waitForTransform("AR_OBJECT_REORIENTED","camera_link",ros::Time(0),ros::Duration(3.0));
+        if(arTagFound){
+            listener.lookupTransform("AR_OBJECT_REORIENTED","camera_link",ros::Time(0),ar_kinect);
+
+            listener.waitForTransform("arm_base","AR_OBJECT_REORIENTED",ros::Time(0),ros::Duration(3.0));
+            listener.lookupTransform("arm_base","AR_OBJECT_REORIENTED",ros::Time(0),ar_jaco);
+
+           // printPose("kinect",ar_kinect);
+           // printPose("jaco",ar_jaco);
+
+            //ar_kinect *= ar_jaco;
+
+            tf::Vector3 translation = ar_kinect.getOrigin() + ar_jaco.getOrigin();
+            add = tf::Transform(ar_kinect.getRotation()*ar_jaco.getRotation(), translation);
+            br.sendTransform(tf::StampedTransform(add,ros::Time::now(),"arm_base","camera_link_calculated"));
+
+
+
+            printPose("Calculated Camera Pose Relative to Arm_base", add);
+
+        }
+        r.sleep();
+    }
+}
 
 void printPose(string str, tf::Transform &in_pose){
     cout << str << " : " << endl;
@@ -123,9 +143,15 @@ int main (int argc, char** argv)
     ros::NodeHandle n;
     ros::NodeHandle nh("~");
 
+    boost::thread kinect_tag(cameraToARTagTF);
+    boost::thread jaco_tag(jacoToARTagTF);
+    boost::thread align_tag(alignARTagOfBothReferentials);
+    boost::thread findJacoKinectTF(printJacoKinectTF);
+
+
     ros::Rate r(5);
     while(ros::ok()){
-        calibrate();
+        r.sleep();
     }
 
 
