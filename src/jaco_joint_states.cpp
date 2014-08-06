@@ -24,12 +24,12 @@ void angles_callback(const jaco_msgs::JointAnglesConstPtr& input_fingers){
     joint_state.velocity.resize(6);
     joint_state.effort.resize(6);
 
-    joint_state.position[0] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J1));
-    joint_state.position[1] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J2));
-    joint_state.position[2] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J3));
-    joint_state.position[3] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J4));
-    joint_state.position[4] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J5));
-    joint_state.position[5] = angles::normalize_angle(angles::from_degrees(input_fingers->Angle_J6));
+    joint_state.position[0] = angles::normalize_angle(angles::from_degrees(input_fingers->joint1));
+    joint_state.position[1] = angles::normalize_angle(angles::from_degrees(input_fingers->joint2));
+    joint_state.position[2] = angles::normalize_angle(angles::from_degrees(input_fingers->joint3));
+    joint_state.position[3] = angles::normalize_angle(angles::from_degrees(input_fingers->joint4));
+    joint_state.position[4] = angles::normalize_angle(angles::from_degrees(input_fingers->joint5));
+    joint_state.position[5] = angles::normalize_angle(angles::from_degrees(input_fingers->joint6));
 
 
     pub.publish(joint_state);
