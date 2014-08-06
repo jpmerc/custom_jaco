@@ -12,12 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package( PCL REQUIRED )
-include_directories( ${catkin_INCLUDE_DIRS}  ${PCL_INCLUDE_DIRS} include)
+include_directories( ${catkin_INCLUDE_DIRS}  ${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 catkin_package(
-  INCLUDE_DIRS include #${PCL_INCLUDE_DIRS}
+  INCLUDE_DIRS #${PCL_INCLUDE_DIRS}
  #  LIBRARIES ${PCL_LIBRARY_DIRS}
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
